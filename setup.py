@@ -3,7 +3,7 @@ from setuptools import setup, find_packages
 
 setup(
     name='affectivecloud',
-    version='1.0.0',
+    version='1.0.1',
     description='AffectiveCloud Python SDK',
     classifiers=[
         'Natural Language :: Chinese (Simplified)',
