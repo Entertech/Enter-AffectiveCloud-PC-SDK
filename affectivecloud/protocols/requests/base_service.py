@@ -1,7 +1,7 @@
 from typing import List, Dict, Any
 import json
 
-from algorithm.base_services import BaseServiceType
+from affectivecloud.algorithm import BaseServiceType
 
 
 class BaseServiceRequest(object):

@@ -13,11 +13,10 @@ from tkinter.font import Font
 from typing import List
 
 from enterble import DeviceScanner, FlowtimeCollector
-from algorithm.affective_services import AffectiveServices
+from affectivecloud.algorithm import BaseServices, AffectiveServices
+from affectivecloud.protocols import Services
+from affectivecloud import ACClient
 
-from algorithm.base_services import BaseServices
-from client import ACClient
-from protocols.protocol import Services
 
 if sys.version_info < (3, 7):
     asyncio.get_running_loop = asyncio._get_running_loop

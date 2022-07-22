@@ -6,7 +6,7 @@ import platform
 
 from enterble import DeviceScanner, FlowtimeCollector
 
-from algorithm.base_services import BaseServices
+from affectivecloud.algorithm import BaseServices
 
 if sys.version_info < (3, 7):
     asyncio.get_running_loop = asyncio._get_running_loop
@@ -85,8 +85,8 @@ async def data_collector():
 
 
 async def ws_client():
-    from client import ACClient
-    from protocols.protocol import Services
+    from affectivecloud import ACClient
+    from affectivecloud.protocols import Services
 
     client: ACClient = None
 

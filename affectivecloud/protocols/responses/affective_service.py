@@ -1,4 +1,4 @@
-from protocols.responses.base import Response
+from affectivecloud.protocols.responses.base import Response
 
 
 class AffectiveServiceResponse(object):
