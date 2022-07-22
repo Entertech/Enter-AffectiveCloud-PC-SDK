@@ -465,10 +465,8 @@ class Demo:
         self.write_log("Close session.")
         self.create_connect_btn.config(state=NORMAL)
         self.create_session_btn.config(state=NORMAL)
-        if self.session_id:
-            self.restore_session_btn.config(state=NORMAL)
-        else:
-            self.restore_session_btn.config(state=DISABLED)
+        self.session_id = None
+        self.restore_session_btn.config(state=DISABLED)
         self.close_session_btn.config(state=DISABLED)
 
         self.init_base_service_btn.config(state=DISABLED)
