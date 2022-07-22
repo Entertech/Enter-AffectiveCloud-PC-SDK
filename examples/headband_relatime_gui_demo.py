@@ -383,7 +383,6 @@ class Demo:
         self.scan_device_btn.config(state=NORMAL)
         if len(devices) > 0:
             self.connect_device_btn.config(state=NORMAL)
-            self.disconnect_device_btn.config(state=NORMAL)
         else:
             self.write_log("Device not found. please try again later.")
 
