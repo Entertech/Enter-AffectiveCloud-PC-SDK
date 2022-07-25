@@ -3,7 +3,7 @@ from setuptools import setup, find_packages
 
 setup(
     name='affectivecloud',
-    version='1.0.1',
+    version='1.0.2',
     description='AffectiveCloud Python SDK',
     classifiers=[
         'Natural Language :: Chinese (Simplified)',
@@ -45,7 +45,7 @@ setup(
         'websockets==9.1',
     ],
     dependency_links=[
-        'git+https://github.com/Entertech/Enter-Biomodule-BLE-PC-SDK.git@v1.0.1#egg=enterble',
+        'git+https://github.com/Entertech/Enter-Biomodule-BLE-PC-SDK.git@v1.0.2#egg=enterble',
     ],
     zip_safe=False
 )
