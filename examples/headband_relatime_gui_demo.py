@@ -12,7 +12,7 @@ from tkinter import (
 from tkinter.font import Font
 from typing import Awaitable, List, Optional, Callable
 
-from bleak.backends.corebluetooth.client import BaseBleakClient
+from bleak.backends.client import BaseBleakClient
 
 from enterble import DeviceScanner, FlowtimeCollector
 from affectivecloud.algorithm import BaseServices, AffectiveServices
