@@ -10,7 +10,9 @@ from tkinter import (
     Event
 )
 from tkinter.font import Font
-from typing import List
+from typing import Awaitable, List, Optional, Callable
+
+from bleak.backends.corebluetooth.client import BaseBleakClient
 
 from enterble import DeviceScanner, FlowtimeCollector
 from affectivecloud.algorithm import BaseServices, AffectiveServices
@@ -34,10 +36,19 @@ def bleak_log(level=logging.INFO):
     logging.getLogger('bleak').setLevel(level=level)
 
 
+# 设备扫描器
 class Scanner:
 
     @classmethod
-    async def scan(cls, name, model_nbr_uuid, callback, timeout=5):
+    async def scan(cls, name: str, model_nbr_uuid: str, callback: Awaitable, timeout=5):
+        """扫描设备
+
+        Args:
+            name (str): 设备名称
+            model_nbr_uuid (str): 设备广播 UUID
+            callback (Awaitable): 设备发现回调函数
+            timeout (int, optional): 超时设置. Defaults to 5 seconds.
+        """
         devices = await DeviceScanner.discover(
             name=name,
             model_nbr_uuid=model_nbr_uuid,
@@ -68,13 +79,16 @@ class Demo:
 
     def __init__(self) -> None:
         self.loop = asyncio.get_event_loop()
+        # 初始化设备扫描器
         self.scanner = Scanner()
 
+        # 初始化 Flowtime 数据采集器
         self.collector: FlowtimeCollector = None
         self.show_collector_data: bool = False
 
+        # 初始化 情感云 客户端
         self.client = ACClient(
-            url="wss://server-test.affectivecloud.cn/ws/algorithm/v2/",
+            url="wss://server.affectivecloud.cn/ws/algorithm/v2/",
             app_key=os.environ.get("APP_KEY"),
             secret=os.environ.get("APP_SECRET"),
             client_id=os.environ.get("CLIENT_ID"),
@@ -100,6 +114,7 @@ class Demo:
         self.session_id = None
         self.upload_switch = False
 
+        # 初始化 GUI
         self.tk = Tk()
         self.screen_w, self.screen_h = 1024, 768
         w, h = self.tk.maxsize()
@@ -288,23 +303,40 @@ class Demo:
         self.finish_affective_service_btn.config(state=DISABLED)
 
     async def run(self):
+        """运行程序
+        """
         self.tk.resizable(False, False)
 
         while True:
             self.tk.update()
             await asyncio.sleep(1/60)
 
-    def write_log(self, text) -> None:
+    def write_log(self, text: str) -> None:
+        """写入日志到界面日志控制台
+
+        Args:
+            text: 日志内容
+        """
         self.text.insert(END, text + '\n')
         self.text.see(END)
 
     def widget_disabled(self, widget) -> bool:
+        """检查控件是否可用
+
+        Args:
+            widget: 控件
+
+        Returns:
+            bool: 控件是否可用
+        """
         return widget.cget('state') == DISABLED
 
     # --------------------------------------------------
     # 硬件
     # 硬件操作
     def scan_device(self, event: Event) -> None:
+        """扫描设备
+        """
         if self.widget_disabled(event.widget):
             return
         print("Scan device")
@@ -320,9 +352,13 @@ class Demo:
         self.disconnect_device_btn.config(state=DISABLED)
 
     def select_device(self, event: Event) -> None:
+        """选择设备
+        """
         print("select device")
 
     def connect_device(self, event: Event) -> None:
+        """连接设备
+        """
         if self.widget_disabled(event.widget):
             return
         print("connect device")
@@ -331,6 +367,7 @@ class Demo:
             name='Flowtime',
             model_nbr_uuid="0000ff10-1212-abcd-1523-785feabcd123",
             device_identify=self.device_selected.get(),
+            device_disconnected_callback=self.device_disconnected,
             soc_data_callback=self.soc_callback,
             wear_status_callback=self.wear_status_callback,
             eeg_data_callback=self.eeg_data_collector,
@@ -340,10 +377,11 @@ class Demo:
         asyncio.ensure_future(self.collector.wait_for_stop())
         self.scan_device_btn.config(state=DISABLED)
         self.connect_device_btn.config(state=DISABLED)
-        self.disconnect_device_btn.config(state=NORMAL)
         self.show_collector_data_btn.config(state=NORMAL)
 
     def disconnect_device(self, event: Event) -> None:
+        """断开设备
+        """
         if self.widget_disabled(event.widget):
             return
         print("disconnect device")
@@ -355,6 +393,8 @@ class Demo:
         self.show_collector_data_btn.config(state=DISABLED)
 
     def show_collector_data_btn_click(self, event: Event) -> None:
+        """显示/隐藏采集器数据
+        """
         if self.widget_disabled(event.widget):
             return
         self.show_collector_data = not self.show_collector_data
@@ -367,6 +407,8 @@ class Demo:
 
     # 硬件操作回调接口
     def _scan_device_callback(self, devices) -> None:
+        """扫描设备回调接口
+        """
         print(devices)
         for i, device in enumerate(devices):
             select_option = device[0] if platform.system() != "Darwin" else device[1]
@@ -386,14 +428,31 @@ class Demo:
         else:
             self.write_log("Device not found. please try again later.")
 
+    async def device_disconnected(self, device: Optional[Callable[["BaseBleakClient"], None]]) -> None:
+        """设备断开回调接口
+        """
+        print("Device disconnected")
+        self.write_log("Device disconnected.")
+        self.scan_device_btn.config(state=NORMAL)
+        self.connect_device_btn.config(state=NORMAL)
+        self.disconnect_device_btn.config(state=DISABLED)
+        self.show_collector_data_btn.config(state=DISABLED)
+
     async def soc_callback(self, soc: float) -> None:
+        """SOC回调接口
+        """
+        self.disconnect_device_btn.config(state=NORMAL)
         self.write_log("SOC: {}".format(soc))
 
     async def wear_status_callback(self, wear_status: bool) -> None:
+        """穿戴状态回调接口
+        """
         self.write_log("Wear status: {}".format(wear_status))
         self.device_selected
 
     async def eeg_data_collector(self, data: List[int]) -> None:
+        """EEG数据采集回调接口
+        """
         logger.info(f'EEG: {data}')
         if self.upload_switch and self.client.ws and not self.client.ws.closed:
             asyncio.ensure_future(self.client.upload_raw_data_from_device({
@@ -404,6 +463,8 @@ class Demo:
             self.write_log("EEG: {}".format(data))
 
     async def hr_data_collector(self, data: int):
+        """HR数据采集回调接口
+        """
         logger.info(f'HR: {data}')
         if self.upload_switch and self.client.ws and not self.client.ws.closed:
             asyncio.ensure_future(self.client.upload_raw_data_from_device({
@@ -417,6 +478,8 @@ class Demo:
     # 情感云操作
     # 会话
     def create_connect(self, event: Event) -> None:
+        """创建情感云连接
+        """
         if self.widget_disabled(event.widget):
             return
         if self.collector is None or self.collector._stop:
@@ -435,6 +498,8 @@ class Demo:
         self.close_session_btn.config(state=DISABLED)
 
     def create_session(self, event: Event) -> None:
+        """创建情感云会话
+        """
         if self.widget_disabled(event.widget):
             return
         asyncio.ensure_future(self.client.create_session())
@@ -446,6 +511,8 @@ class Demo:
         self.close_session_btn.config(state=NORMAL)
 
     def restore_session(self, event: Event) -> None:
+        """恢复情感云会话
+        """
         if self.widget_disabled(event.widget):
             return
         print("restore session")
@@ -457,6 +524,8 @@ class Demo:
         self.close_session_btn.config(state=NORMAL)
 
     def close_session(self, event: Event) -> None:
+        """关闭情感云会话
+        """
         if self.widget_disabled(event.widget):
             return
         print("close session")
@@ -482,9 +551,13 @@ class Demo:
 
     # 基础服务
     def base_service_check(self) -> None:
+        """基础服务选中
+        """
         print("base service check")
 
     def init_base_service(self, event: Event) -> None:
+        """初始化基础服务
+        """
         if self.widget_disabled(event.widget):
             return
         print("init base service")
@@ -499,6 +572,8 @@ class Demo:
         self.start_affective_service_btn.config(state=NORMAL)
 
     def subscribe_base_service(self, event: Event) -> None:
+        """订阅基础服务
+        """
         if self.widget_disabled(event.widget):
             return
         print("subscribe base service")
@@ -509,6 +584,8 @@ class Demo:
         self.subscribe_base_service_btn.config(state=DISABLED)
 
     def upload_base_service(self, event: Event) -> None:
+        """上传基础服务生物数据
+        """
         if self.widget_disabled(event.widget):
             return
         print("upload base service")
@@ -520,6 +597,8 @@ class Demo:
         self.get_affective_service_report_btn.config(state=NORMAL)
 
     def stop_upload_base_service(self, event: Event) -> None:
+        """停止上传基础服务生物数据
+        """
         if self.widget_disabled(event.widget):
             return
         print("stop upload base service")
@@ -531,6 +610,8 @@ class Demo:
         self.get_affective_service_report_btn.config(state=DISABLED)
 
     def get_base_service_report(self, event: Event) -> None:
+        """获取基础服务数据报告
+        """
         if self.widget_disabled(event.widget):
             return
         print("get base service report")
@@ -542,9 +623,13 @@ class Demo:
 
     # 情感云服务
     def affective_service_check(self) -> None:
+        """情感云服务选中
+        """
         print("affective service check")
 
     def start_affective_service(self, event: Event) -> None:
+        """开始情感计算服务
+        """
         if self.widget_disabled(event.widget):
             return
         print("start affective service")
@@ -558,6 +643,8 @@ class Demo:
         self.finish_affective_service_btn.config(state=NORMAL)
 
     def subscribe_affective_service(self, event: Event) -> None:
+        """订阅情感计算服务
+        """
         if self.widget_disabled(event.widget):
             return
         print("subscribe affective service")
@@ -568,6 +655,8 @@ class Demo:
         self.subscribe_affective_service_btn.config(state=DISABLED)
 
     def get_affective_service_report(self, event: Event) -> None:
+        """获取情感计算服务数据报告
+        """
         if self.widget_disabled(event.widget):
             return
         print("get affective service report")
@@ -578,6 +667,8 @@ class Demo:
         self.get_affective_service_report_btn.config(state=DISABLED)
 
     def finish_affective_service(self, event: Event) -> None:
+        """结束情感计算服务
+        """
         if self.widget_disabled(event.widget):
             return
         print("finish affective service")
@@ -591,6 +682,8 @@ class Demo:
     # 情感云返回数据回调接口
     # 会话
     async def session_create(self, data: str) -> None:
+        """会话创建回调
+        """
         print(f"< {data}")
         if data.code == 0:
             self.session_id = data.session_id
@@ -601,6 +694,8 @@ class Demo:
         self.write_log(f"< {data}")
 
     async def session_restore(self, data: str) -> None:
+        """会话恢复回调
+        """
         print(f"< {data}")
         if data.code == 0:
             self.session_id = data.session_id
@@ -611,38 +706,54 @@ class Demo:
         self.write_log(f"< {data}")
 
     async def session_close(self, data: str) -> None:
+        """会话关闭回调
+        """
         print(f"< {data}")
         self.write_log(f"< {data}")
 
     # 基础服务
     async def base_service_init(self, data: str) -> None:
+        """基础服务初始化回调
+        """
         print(f"< {data}")
         self.write_log(f"< {data}")
 
     async def base_service_subscribe(self, data: str) -> None:
+        """基础服务订阅回调
+        """
         print(f"< {data}")
         self.write_log(f"< {data}")
 
     async def base_service_report(self, data: str) -> None:
+        """基础服务数据报告回调
+        """
         print(f"< {data}")
         self.write_log(f"< {data}")
         self.get_base_service_report_btn.config(state=NORMAL)
 
     # 情感服务
     async def affective_service_start(self, data: str) -> None:
+        """情感服务开始回调
+        """
         print(f"< {data}")
         self.write_log(f"< {data}")
 
     async def affective_service_subscribe(self, data: str) -> None:
+        """情感服务订阅回调
+        """
         print(f"< {data}")
         self.write_log(f"< {data}")
 
     async def affective_service_report(self, data: str) -> None:
+        """情感服务数据报告回调
+        """
         print(f"< {data}")
         self.write_log(f"< {data}")
         self.get_affective_service_report_btn.config(state=NORMAL)
 
     async def affective_service_finish(self, data: str) -> None:
+        """情感服务结束回调
+        """
         print(f"< {data}")
         self.write_log(f"< {data}")
 
@@ -651,7 +762,4 @@ if __name__ == '__main__':
     bleak_log(logging.INFO)
 
     loop = asyncio.get_event_loop()
-    # loop.run_until_complete(get_device())
-    # loop.run_until_complete(data_collector())
-    # loop.run_until_complete(ws_client())
     loop.run_until_complete(Demo().run())

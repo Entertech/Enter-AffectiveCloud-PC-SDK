@@ -1,7 +1,15 @@
+import logging
+
+logger = logging.getLogger(__name__)
+
+
+# 请求协议头
 class RequestHead(object):
 
+    # 请求会话协议类型
     services: str = None
 
+    # 请求协议操作类型
     op: str = None
 
     def __init__(self, **kwargs):
@@ -15,14 +23,19 @@ class RequestHead(object):
         return '[{}:{}]'.format(self.services, self.op)
 
 
+# 响应基础类型
 class Response(object):
 
+    # 响应码
     code: int = None
 
+    # 请求协议头
     request: RequestHead = None
 
+    # 响应数据
     data = None
 
+    # 响应消息
     msg: str = None
 
     def __init__(self, **kwargs):
@@ -34,6 +47,8 @@ class Response(object):
             if k not in ('code', 'request', 'data', 'msg'):
                 raise Exception('Protocol Error: invalid parameters({}).'.format(k))
             setattr(self, k, v)
+        if self.code != 200:
+            logger.warning(self)
 
     def __str__(self):
         return '[code: {}] [msg: {}] {} >>> {}'.format(self.code, self.msg, self.request, self.data)

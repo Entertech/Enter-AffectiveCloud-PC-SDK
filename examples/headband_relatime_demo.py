@@ -144,7 +144,7 @@ async def ws_client():
     # wss://server.affectivecloud.com/ws/algorithm/v2/
     # ws://localhost:8765
     client = ACClient(
-        url="wss://server-test.affectivecloud.cn/ws/algorithm/v2/",
+        url="wss://server.affectivecloud.cn/ws/algorithm/v2/",
         app_key=os.environ.get("APP_KEY"),
         secret=os.environ.get("APP_SECRET"),
         client_id=os.environ.get("CLIENT_ID"),
