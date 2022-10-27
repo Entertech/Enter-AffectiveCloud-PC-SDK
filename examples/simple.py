@@ -62,6 +62,12 @@ async def data_collector():
         logger.info(f'HR: {data}')
         pass
 
+    async def device_disconnected(device):
+        """设备断开回调接口
+        """
+        print("Device disconnected")
+        pass
+
     model_nbr_uuid = '0000ff10-1212-abcd-1523-785feabcd123'
     device_identify = (
         "FB:EC:25:DE:1A:92"
@@ -75,6 +81,7 @@ async def data_collector():
         name='Flowtime',
         model_nbr_uuid=model_nbr_uuid,
         device_identify=device_identify,
+        device_disconnected_callback=device_disconnected,
         soc_data_callback=soc_callback,
         wear_status_callback=wear_status_callback,
         eeg_data_callback=eeg_data_collector,
