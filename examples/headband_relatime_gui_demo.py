@@ -31,8 +31,8 @@ logger = logging.getLogger(__name__)
 
 
 def bleak_log(level=logging.INFO):
-    import bleak
-    print(bleak.__version__)
+    import importlib.metadata
+    logger.info('Bleak version: {}'.format(importlib.metadata.version('bleak')))
     logging.getLogger('bleak').setLevel(level=level)
 
 
