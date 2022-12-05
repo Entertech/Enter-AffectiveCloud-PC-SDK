@@ -22,3 +22,15 @@ Enter Affective Cloud SDK For PC 是[回车科技](https://www.entertech.cn/)提
 - [simple](https://github.com/Entertech/Enter-AffectiveCloud-PC-SDK/tree/main/examples/simple.py)
 - [headband Demo](https://github.com/Entertech/Enter-AffectiveCloud-PC-SDK/tree/main/examples/headband_relatime_demo.py)
 - [headband Demo GUI Version](https://github.com/Entertech/Enter-AffectiveCloud-PC-SDK/tree/main/examples/headband_relatime_gui_demo.py)
+
+### 注意
+
+在使用 Demo 的时候，需要设置环境变量：
+
+`APP_KEY`
+
+`APP_SECRET`
+
+`CLIENT_ID`
+
+详情参考：[认证并创建会话](https://docs.affectivecloud.cn/%F0%9F%8E%99%E6%8E%A5%E5%8F%A3%E5%8D%8F%E8%AE%AE/%E4%BC%9A%E8%AF%9D%E5%8D%8F%E8%AE%AE#%E8%AE%A4%E8%AF%81%E5%B9%B6%E5%88%9B%E5%BB%BA%E5%AF%B9%E8%AF%9D%E7%9A%84-request)
