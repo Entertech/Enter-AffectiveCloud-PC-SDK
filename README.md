@@ -8,6 +8,10 @@ Enter Affective Cloud SDK For PC 是[回车科技](https://www.entertech.cn/)提
 
 `pip install affectivecloud`
 
+### 注意
+
+SDK 默认支持 >= 3.6,< 3.10 版本的 Python 运行环境；如需 3.10 以上版本使用，请升级 websockets 依赖包为 >= 10.0 版本
+
 ## 功能
 
 1. 接入蓝牙数据（[enterble](https://github.com/Entertech/Enter-Biomodule-BLE-PC-SDK)）
@@ -24,6 +28,8 @@ Enter Affective Cloud SDK For PC 是[回车科技](https://www.entertech.cn/)提
 - [headband Demo GUI Version](https://github.com/Entertech/Enter-AffectiveCloud-PC-SDK/tree/main/examples/headband_relatime_gui_demo.py)
 
 ### 注意
+
+#### 环境变量
 
 在使用 Demo 的时候，需要设置环境变量：
 
