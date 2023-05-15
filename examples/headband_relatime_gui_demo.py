@@ -40,7 +40,7 @@ def bleak_log(level=logging.INFO):
 class Scanner:
 
     @classmethod
-    async def scan(cls, name: str, model_nbr_uuid: str, callback: Awaitable, timeout=5):
+    async def scan(cls, model_nbr_uuid: str, callback: Awaitable, name: str = None, timeout=5):
         """扫描设备
 
         Args:
@@ -342,7 +342,7 @@ class Demo:
         print("Scan device")
         self.write_log("Device scanning...")
         asyncio.ensure_future(Scanner.scan(
-            name="Flowtime",
+            # name="Flowtime",  # 不知道设备名, 可以不指定
             model_nbr_uuid="0000ff10-1212-abcd-1523-785feabcd123",
             timeout=5,
             callback=self._scan_device_callback
@@ -364,7 +364,7 @@ class Demo:
         print("connect device")
         self.write_log("Device connecting...")
         self.collector = FlowtimeCollector(
-            name='Flowtime',
+            # name="Flowtime",  # 不知道设备名, 可以不指定
             model_nbr_uuid="0000ff10-1212-abcd-1523-785feabcd123",
             device_identify=self.device_selected.get(),
             device_disconnected_callback=self.device_disconnected,

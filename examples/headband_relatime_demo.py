@@ -87,7 +87,7 @@ async def data_collector(client: ACClient):
     )
 
     collector = FlowtimeCollector(
-        name='Flowtime',
+        # name="Flowtime",  # 不知道设备名, 可以不指定
         model_nbr_uuid=model_nbr_uuid,
         device_identify=device_identify,
         device_disconnected_callback=device_disconnected,
