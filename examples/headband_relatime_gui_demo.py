@@ -109,7 +109,13 @@ class Demo:
                     Services.Operation.AffectiveService.REPORT: self.affective_service_report,
                     Services.Operation.AffectiveService.FINISH: self.affective_service_finish,
                 },
-            }
+            },
+            ping_interval=1,
+            ping_timeout=1,
+            timeout=1,
+            close_timeout=None,
+            reconnect=True,
+            reconnect_interval=5,
         )
         self.session_id = None
         self.upload_switch = False

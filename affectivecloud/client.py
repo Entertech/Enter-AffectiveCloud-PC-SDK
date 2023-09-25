@@ -4,6 +4,7 @@ import sys
 import asyncio
 import gzip
 from typing import Any, Awaitable, Dict, Union, List
+import logging
 
 import websockets
 
@@ -19,27 +20,86 @@ if sys.version_info < (3, 7):
     asyncio.get_running_loop = asyncio._get_running_loop
 
 
+logger = logging.getLogger(__name__)
+
+
 # WebSocket 客户端基础类
 class Client(object):
 
-    def __init__(self, url: str, recv_callback: Awaitable) -> None:
+    def __init__(
+        self, url: str,
+        recv_callback: Awaitable,
+        ping_interval: float = 20,
+        ping_timeout: float = 20,
+        timeout: float = 10,
+        close_timeout: float = None,
+        reconnect: bool = False,
+        reconnect_interval: int = 5,
+    ) -> None:
         """初始化客户端
 
         Args:
             url (str): 服务器 URL
             recv_callback (Awaitable): 接收数据回调函数
+            ping_interval (float, optional): 心跳间隔. Defaults to 20.
+            ping_timeout (float, optional): 心跳超时. Defaults to 20.
+            timeout (float, optional): 连接超时. Defaults to 10.
+            close_timeout (float, optional): 关闭超时. Defaults to None.
+            reconnect (bool, optional): 是否重连. Defaults to False.
+            reconnect_interval (int, optional): 重连间隔. Defaults to 5.
         """
         self.url = url
         self.recv_callback = recv_callback
+        self.ping_interval = ping_interval
+        self.ping_timeout = ping_timeout
+        self.timeout = timeout
+        self.close_timeout = close_timeout
+        self.reconnect = reconnect
+        self.reconnect_interval = reconnect_interval
         self.ws = None
         self.loop = asyncio.get_event_loop()
+        self.closed = True
 
     async def connect(self) -> None:
         """连接服务器
         """
-        self.ws = await websockets.connect(self.url)
-        if not self.ws.closed:
-            asyncio.ensure_future(self.__recv())
+        asyncio.ensure_future(self.__connect())
+
+    async def __connect(self) -> None:
+        """连接服务器
+        """
+        try:
+            async with websockets.connect(
+                self.url,
+                ping_interval=self.ping_interval,
+                ping_timeout=self.ping_timeout,
+                timeout=self.timeout,
+                close_timeout=self.close_timeout,
+            ) as ws:
+                self.ws = ws
+                self.closed = False
+                logger.info('Connected')
+                await self.__recv()
+        except websockets.exceptions.ConnectionClosed as e:
+            logger.info(e)
+            logger.info('Connection closed')
+            if self.closed:
+                return
+            if not self.reconnect:
+                return
+            logger.info('Reconnecting after {} seconds...'.format(self.reconnect_interval))
+            await asyncio.sleep(self.reconnect_interval)
+            return await self.__connect()
+        except Exception as e:
+            logger.info(e)
+            logger.info('Connection error')
+            if self.closed:
+                return
+            if not self.reconnect:
+                return
+            logger.info('Reconnecting after {} seconds...'.format(self.reconnect_interval))
+            await asyncio.sleep(self.reconnect_interval)
+            return await self.__connect()
 
     async def send(self, data: Union[str, bytes]) -> None:
         """发送数据
@@ -54,13 +114,23 @@ class Client(object):
         """
         while not self.ws.closed:
             data = await self.ws.recv()
-            await self.recv_callback(data)
+            try:
+                await self.recv_callback(data)
+            except ValueError as e:
+                logger.error(e)
+                logger.error('Invalid data')
+                continue
+            except Exception as e:
+                logger.error(e)
+                logger.error('Recv error')
+                continue
         print('Recv closed')
 
     def close(self) -> None:
         """关闭连接
         """
         self.ws.close()
+        self.closed = True
         print('Closed')
 
 
@@ -82,6 +152,12 @@ class ACClient(Client):
         upload_cycle: int = 3,
         recv_mode: RecvMode = RecvMode.CALLBACK,
         recv_callbacks: Dict[ServiceType, Dict[OperationType, Awaitable]] = None,
+        ping_interval: float = 20,
+        ping_timeout: float = 20,
+        timeout: float = 10,
+        close_timeout: float = None,
+        reconnect: bool = False,
+        reconnect_interval: int = 5,
     ) -> None:
         """初始化情感云 WebSocket 接口客户端
 
@@ -93,11 +169,18 @@ class ACClient(Client):
             upload_cycle (int, optional): 上传周期. Defaults to 3.
             recv_mode (RecvMode, optional): 数据接收模式. Defaults to RecvMode.CALLBACK.
             recv_callbacks (Dict[ServiceType, Dict[OperationType, Awaitable]], optional): 数据接收回调函数表. Defaults to None.
-
+            ping_interval (float, optional): 心跳间隔. Defaults to 20.
+            ping_timeout (float, optional): 心跳超时. Defaults to 20.
+            timeout (float, optional): 超时. Defaults to 10.
+            close_timeout (float, optional): 关闭超时. Defaults to None.
+            reconnect (bool, optional): 是否重连. Defaults to False.
+            reconnect_interval (int, optional): 重连间隔. Defaults to 5.
         Raises:
             ValueError: _description_
         """
-        super().__init__(url, self._recv)
+        super().__init__(
+            url, self._recv, ping_interval, ping_timeout, timeout, close_timeout, reconnect, reconnect_interval
+        )
         self.url = url
         self.app_key = app_key
         self.secret = secret
@@ -105,6 +188,12 @@ class ACClient(Client):
         self.upload_cycle = upload_cycle
         self.recv_mode = recv_mode
         self.recv_callbacks = recv_callbacks
+        self.ping_interval = ping_interval
+        self.ping_timeout = ping_timeout
+        self.timeout = timeout
+        self.close_timeout = close_timeout
+        self.reconnect = reconnect
+        self.reconnect_interval = reconnect_interval
         self.recv_queue = None
         self.raw_data_bucket = defaultdict(list)
         self.__lock = asyncio.Lock()
