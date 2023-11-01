@@ -49,11 +49,17 @@ async def get_device():
             logger.error(f'{device} - {device.identify} - {e}')
 
 
+start = False
+
+
 async def data_collector(client: ACClient):
 
     async def soc_callback(soc):
         logger.info(f'SOC: {soc}')
-        pass
+        global start
+        if not start:
+            await client.create_session()
+            start = True
 
     async def wear_status_callback(wear_status):
         logger.info(f'Wear status: {wear_status}')
@@ -181,10 +187,9 @@ async def ws_client():
     asyncio.ensure_future(data_collector(client))
 
     await client.connect()
+    await asyncio.sleep(1)
 
-    await client.create_session()
-
-    while not client.ws.closed:
+    while start or not client.ws.closed:
         await asyncio.sleep(10)
 
     print("websocket closed")
