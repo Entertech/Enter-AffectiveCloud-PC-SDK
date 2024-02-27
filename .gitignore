@@ -7,3 +7,8 @@ dist
 ./simple.py
 ./headband_relatime_gui_demo.py
 ./*.txt
+*.eeg
+*.eeg.src
+./simple.py
+./headband_relatime_gui_demo.py
+./offline.py
